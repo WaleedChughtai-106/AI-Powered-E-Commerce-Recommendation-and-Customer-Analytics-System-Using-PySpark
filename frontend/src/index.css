@@ -1,0 +1,573 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================================
+   Quantuma AI — Premium Theme System
+   ----------------------------------------------------------------------------
+   Two complete themes (.dark default, .light premium) sharing the same token
+   names. Components only ever reference these CSS variables — they don't
+   hard-code colours. Switching `<html class="dark">` ↔ `<html class="light">`
+   re-themes the entire app in one repaint.
+   ============================================================================= */
+
+@layer base {
+
+  /* ─── DARK (default) ──────────────────────────────────────────────────────
+     This is the original cyberpunk dark mode. Untouched for backwards
+     compatibility; everything below in @layer components consumes the same
+     token names, so .glass-card / .pill / .btn-primary all just work. */
+  :root,
+  .dark {
+    /* Shadcn-compatible HSL tokens (no `hsl()` wrapper — Tailwind adds it) */
+    --background: 220 13% 5%;
+    --foreground: 210 20% 96%;
+    --card: 220 14% 8%;
+    --card-foreground: 210 20% 96%;
+    --popover: 220 14% 8%;
+    --popover-foreground: 210 20% 96%;
+    --primary: 158 64% 52%;
+    --primary-foreground: 220 13% 5%;
+    --secondary: 220 13% 14%;
+    --secondary-foreground: 210 20% 96%;
+    --muted: 220 13% 12%;
+    --muted-foreground: 215 16% 60%;
+    --accent: 220 13% 14%;
+    --accent-foreground: 210 20% 96%;
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 210 20% 96%;
+    --border: 220 13% 16%;
+    --input: 220 13% 16%;
+    --ring: 158 64% 52%;
+    --radius: 0.85rem;
+
+    /* Premium semantic tokens (raw CSS, used directly in @layer components) */
+    --surface-base:     #0a0b0d;   /* page background */
+    --surface-elevated: #101216;   /* primary card */
+    --surface-secondary:#161a20;   /* secondary card / hover */
+    --surface-frost:    rgba(16,18,22,0.72);  /* glass overlay */
+    --surface-input:    #161a20;
+
+    --brand-emerald:    #10b981;
+    --brand-mint:       #34d399;
+    --brand-deep:       #059669;
+    --brand-glow:       rgba(52,211,153,0.18);
+    --brand-glow-soft:  rgba(16,185,129,0.08);
+
+    --text-strong:      #f1f5f9;
+    --text-default:     #e2e8f0;
+    --text-secondary:   #94a3b8;
+    --text-muted:       #64748b;
+
+    --border-subtle:    rgba(255,255,255,0.06);
+    --border-strong:    rgba(255,255,255,0.12);
+    --border-emerald:   rgba(16,185,129,0.30);
+
+    --shadow-card:      0 1px 0 rgba(255,255,255,0.04) inset,
+                        0 4px 24px rgba(0,0,0,0.40);
+    --shadow-float:     0 2px 0 rgba(255,255,255,0.04) inset,
+                        0 8px 36px rgba(0,0,0,0.50);
+    --shadow-glow:      0 0 0 1px rgba(16,185,129,0.18),
+                        0 12px 48px -8px rgba(16,185,129,0.30);
+    --shadow-input:     inset 0 1px 0 rgba(255,255,255,0.03);
+
+    --ring-focus:       0 0 0 3px rgba(16,185,129,0.30);
+
+    --grid-line:        rgba(255,255,255,0.025);
+    --tooltip-bg:       #101216;
+    --tooltip-border:   rgba(255,255,255,0.08);
+    --tooltip-text:     #f1f5f9;
+
+    --orb-a:            rgba(16,185,129,0.22);
+    --orb-b:            rgba(52,211,153,0.16);
+    --orb-c:            rgba(110,231,183,0.12);
+
+    --scrollbar-thumb:  rgba(255,255,255,0.06);
+    --scrollbar-thumb-hover: rgba(255,255,255,0.12);
+    --selection-bg:     rgba(16,185,129,0.35);
+    --selection-fg:     #ffffff;
+  }
+
+  /* ─── LIGHT (premium, designed fresh — NOT an inversion) ──────────────────
+     Brand direction: Stripe Dashboard + Linear + Vercel Analytics +
+     Apple-style glassmorphism + Spotify emerald.
+
+     Differences from "naive inverted dark":
+       - Page background isn't pure white (#FFFFFF). It's a hair-warm #F7FAF9
+         so it doesn't feel medical/clinical.
+       - Cards are #FFFFFF but float above the page via soft layered shadows,
+         not via borders. Borders are translucent emerald-tinted, almost
+         invisible until hover.
+       - Selection, focus rings, and active nav items use mint glows, not
+         bright emerald — the visible accent stays soft.
+       - Text is slate-tinted (#0F172A) rather than pure black for warmth. */
+  .light {
+    --background: 156 24% 97%;       /* #F7FAF9 */
+    --foreground: 222 47% 11%;       /* #0F172A */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 158 84% 39%;          /* slightly deeper emerald, reads on white */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 152 20% 95%;        /* #F1F5F3 */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 152 20% 95%;
+    --muted-foreground: 215 16% 47%; /* #475569 */
+    --accent: 152 20% 95%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 152 20% 90%;
+    --input: 152 20% 92%;
+    --ring: 158 84% 39%;
+    --radius: 0.85rem;
+
+    /* Premium semantic tokens */
+    --surface-base:     #F7FAF9;
+    --surface-elevated: #FFFFFF;
+    --surface-secondary:#F1F5F3;
+    --surface-frost:    rgba(255,255,255,0.72);
+    --surface-input:    #FFFFFF;
+
+    --brand-emerald:    #10B981;
+    --brand-mint:       #34D399;
+    --brand-deep:       #059669;
+    --brand-glow:       rgba(52,211,153,0.15);
+    --brand-glow-soft:  rgba(16,185,129,0.06);
+
+    --text-strong:      #0F172A;
+    --text-default:     #1E293B;
+    --text-secondary:   #475569;
+    --text-muted:       #94A3B8;
+
+    --border-subtle:    rgba(16,185,129,0.08);    /* emerald-tinted, very soft */
+    --border-strong:    rgba(16,185,129,0.18);
+    --border-emerald:   rgba(16,185,129,0.30);
+
+    --shadow-card:      0 1px 2px rgba(15,23,42,0.04),
+                        0 4px 18px rgba(15,23,42,0.06),
+                        0 0 0 1px rgba(16,185,129,0.04);
+    --shadow-float:     0 4px 12px rgba(15,23,42,0.06),
+                        0 18px 48px -12px rgba(15,23,42,0.10),
+                        0 0 0 1px rgba(16,185,129,0.05);
+    --shadow-glow:      0 0 0 1px rgba(16,185,129,0.20),
+                        0 16px 56px -10px rgba(52,211,153,0.30);
+    --shadow-input:     inset 0 1px 1px rgba(15,23,42,0.04);
+
+    --ring-focus:       0 0 0 4px rgba(52,211,153,0.20);
+
+    --grid-line:        rgba(15,23,42,0.05);
+    --tooltip-bg:       rgba(255,255,255,0.96);
+    --tooltip-border:   rgba(16,185,129,0.18);
+    --tooltip-text:     #0F172A;
+
+    --orb-a:            rgba(16,185,129,0.18);
+    --orb-b:            rgba(52,211,153,0.12);
+    --orb-c:            rgba(110,231,183,0.10);
+
+    --scrollbar-thumb:  rgba(15,23,42,0.10);
+    --scrollbar-thumb-hover: rgba(15,23,42,0.18);
+    --selection-bg:     rgba(16,185,129,0.22);
+    --selection-fg:     #064e3b;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    @apply h-full w-full;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "ss01", "cv11";
+    background-color: var(--surface-base);
+  }
+}
+
+/* =============================================================================
+   Component utilities — all theme-aware via CSS variables.
+   The same class names render appropriately in both themes.
+   ============================================================================= */
+
+@layer components {
+
+  /* ─── GLASS CARDS ─────────────────────────────────────────────────────── */
+
+  /* The everyday card. Floats above the page with a soft shadow in light
+     mode and a deep shadow + inset highlight in dark mode. */
+  .glass-card {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                border-color 200ms ease;
+  }
+
+  /* Hover variant — used on KPI cards. Lifts and grows a faint emerald ring. */
+  .glass-card-hover:hover {
+    transform: translateY(-1px);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-float);
+  }
+
+  /* Floating card — higher elevation, used for hero / featured cards. */
+  .glass-card-floating {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow-float);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  /* Frosted glass — translucent over an ambient background. Used by the
+     sidebar / topbar so the page glow shows through. */
+  .glass-frost {
+    background: var(--surface-frost);
+    border: 1px solid var(--border-subtle);
+    backdrop-filter: blur(24px) saturate(130%);
+    -webkit-backdrop-filter: blur(24px) saturate(130%);
+  }
+
+  /* Sidebar shell. Same vibe as .glass-frost but with a right-edge accent. */
+  .glass-sidebar {
+    background: var(--surface-frost);
+    border-right: 1px solid var(--border-subtle);
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
+  }
+
+  /* Top navigation bar. Sticky frost surface. */
+  .glass-topbar {
+    background: var(--surface-frost);
+    border-bottom: 1px solid var(--border-subtle);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+  }
+
+  /* ─── BUTTONS ─────────────────────────────────────────────────────────── */
+
+  /* Primary button — emerald gradient with premium glow + hover lift. */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.875rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #ffffff;
+    background-image: linear-gradient(135deg,
+                       var(--brand-mint) 0%,
+                       var(--brand-emerald) 50%,
+                       var(--brand-deep) 100%);
+    box-shadow: 0 8px 24px -8px rgba(16,185,129,0.55),
+                inset 0 1px 0 rgba(255,255,255,0.20);
+    transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                filter 180ms ease;
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+    box-shadow: 0 14px 36px -10px rgba(16,185,129,0.65),
+                inset 0 1px 0 rgba(255,255,255,0.24);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+    filter: brightness(0.98);
+  }
+
+  /* Secondary button — frosted white surface, soft border, elegant hover tint. */
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.875rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-default);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-input);
+    transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                border-color 180ms ease,
+                background 180ms ease;
+  }
+  .btn-secondary:hover {
+    background: var(--brand-glow-soft);
+    border-color: var(--border-emerald);
+    transform: translateY(-1px);
+  }
+
+  /* Ghost button — sidebar nav items, icon-only header buttons. */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 0.625rem;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+  }
+  .btn-ghost:hover {
+    background: var(--brand-glow-soft);
+    color: var(--text-strong);
+  }
+
+  /* Nav item — sidebar variant with active state. */
+  .nav-item {
+    @apply btn-ghost;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .nav-item-active {
+    color: var(--brand-deep);
+    background: linear-gradient(135deg,
+                rgba(52,211,153,0.18) 0%,
+                rgba(16,185,129,0.10) 100%);
+    box-shadow: inset 0 0 0 1px var(--border-emerald),
+                0 0 18px -4px var(--brand-glow);
+  }
+  .light .nav-item-active {
+    color: var(--brand-deep);
+  }
+  .dark .nav-item-active {
+    color: var(--brand-mint);
+  }
+
+  /* ─── INPUTS ─────────────────────────────────────────────────────────── */
+
+  .glass-input {
+    width: 100%;
+    border-radius: 0.75rem;
+    padding: 0.625rem 0.875rem 0.625rem 2.5rem;
+    font-size: 0.875rem;
+    color: var(--text-default);
+    background: var(--surface-input);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-input);
+    transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  }
+  .glass-input::placeholder { color: var(--text-muted); }
+  .glass-input:focus {
+    outline: none;
+    border-color: var(--border-emerald);
+    box-shadow: var(--ring-focus), var(--shadow-input);
+  }
+
+  /* ─── TYPOGRAPHY UTILITIES ─────────────────────────────────────────────── */
+
+  .kpi-label {
+    font-size: 0.6875rem;     /* 11px */
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+  }
+  .kpi-value {
+    font-size: 2.25rem;       /* 36px */
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-strong);
+  }
+  .section-title {
+    font-size: 1.125rem;      /* 18px */
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-strong);
+  }
+  .section-subtitle {
+    font-size: 0.8125rem;     /* 13px */
+    color: var(--text-secondary);
+  }
+
+  /* ─── PILLS (status tags) ─────────────────────────────────────────────── */
+
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium;
+    border: 1px solid;
+  }
+  .light .pill-emerald {
+    background: rgba(16,185,129,0.10); border-color: rgba(16,185,129,0.28); color: #047857;
+  }
+  .dark .pill-emerald {
+    background: rgba(16,185,129,0.10); border-color: rgba(16,185,129,0.30); color: #34d399;
+  }
+  .light .pill-coral {
+    background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); color: #b91c1c;
+  }
+  .dark .pill-coral {
+    background: rgba(239,68,68,0.10); border-color: rgba(239,68,68,0.30); color: #f87171;
+  }
+  .light .pill-purple {
+    background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.25); color: #6d28d9;
+  }
+  .dark .pill-purple {
+    background: rgba(139,92,246,0.10); border-color: rgba(139,92,246,0.30); color: #a78bfa;
+  }
+  .light .pill-blue {
+    background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.25); color: #1d4ed8;
+  }
+  .dark .pill-blue {
+    background: rgba(59,130,246,0.10); border-color: rgba(59,130,246,0.30); color: #60a5fa;
+  }
+
+  /* ─── AMBIENT BACKGROUND EFFECTS ──────────────────────────────────────── */
+
+  /* Soft mesh-gradient page background. Used as a fixed layer behind the
+     whole app. Built from layered conic + radial gradients — no SVG asset. */
+  .ambient-mesh {
+    background-image:
+      radial-gradient(at 12% 0%,    var(--orb-a) 0%, transparent 45%),
+      radial-gradient(at 88% 14%,   var(--orb-b) 0%, transparent 50%),
+      radial-gradient(at 50% 100%,  var(--orb-c) 0%, transparent 60%);
+  }
+
+  /* Single floating blur orb — pair them for cinematic depth. */
+  .orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(80px);
+    pointer-events: none;
+    opacity: 0.85;
+  }
+  .orb-emerald { background: var(--orb-a); }
+  .orb-mint    { background: var(--orb-b); }
+  .orb-neon    { background: var(--orb-c); }
+
+  /* Faint grid overlay — used on hero panels. Theme-aware grid line colour. */
+  .ambient-grid {
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* ─── DIVIDERS ─────────────────────────────────────────────────────────── */
+
+  .hr-soft {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+    border: 0;
+  }
+}
+
+/* =============================================================================
+   Light-mode compatibility layer
+   ----------------------------------------------------------------------------
+   Many components (login/signup/settings/landing pages, plus a handful of
+   inline classNames left over from Phase 3) still reach for the legacy
+   utilities `bg-surface-N` and `border-white/[0.06]`. Those produce
+   near-black surfaces and almost-invisible borders — perfect for dark mode,
+   wrong for light mode.
+
+   Rewriting every page would touch ~14 files. Instead, override these
+   specific classes when `.light` is active. Specificity (`.light .X`) beats
+   Tailwind's single-class selectors, so this Just Works without touching
+   the component code.
+   ============================================================================= */
+
+.light .bg-surface-0,
+.light .bg-surface-0\/80,
+.light .bg-surface-0\/70 {
+  background-color: var(--surface-base) !important;
+}
+.light .bg-surface-1,
+.light .bg-surface-1\/40,
+.light .bg-surface-1\/70,
+.light .bg-surface-1\/80 {
+  background-color: var(--surface-elevated) !important;
+}
+.light .bg-surface-2,
+.light .bg-surface-2\/70,
+.light .bg-surface-2\/80,
+.light .bg-surface-2\/90 {
+  background-color: var(--surface-secondary) !important;
+}
+.light .bg-surface-3,
+.light .bg-surface-3\/70,
+.light .bg-surface-3\/80,
+.light .bg-surface-4 {
+  background-color: #E6EEEA !important;
+}
+
+.light .border-white\/\[0\.04\],
+.light .border-white\/\[0\.06\],
+.light .border-white\/\[0\.08\],
+.light .border-white\/\[0\.10\],
+.light .border-white\/\[0\.12\] {
+  border-color: var(--border-subtle) !important;
+}
+
+/* Translucent text-on-dark utilities flipped to a soft slate in light mode */
+.light .text-foreground { color: var(--text-strong); }
+.light .text-muted-foreground { color: var(--text-secondary); }
+
+/* Hover backgrounds that used a faint white wash now use an emerald wash */
+.light .hover\:bg-white\/\[0\.02\]:hover,
+.light .hover\:bg-white\/\[0\.04\]:hover {
+  background-color: var(--brand-glow-soft) !important;
+}
+
+/* Dashboard background gradient ambient halos that hard-code the
+   from-emerald-500/10 etc. tinting render fine in both themes — Tailwind
+   already uses rgba() for /10 etc. They look softer in light, which is on-brand. */
+
+/* =============================================================================
+   Scrollbar — theme-aware, subtle in both modes.
+   ============================================================================= */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-fg);
+}
+
+/* =============================================================================
+   Animations — kept identical across themes.
+   ============================================================================= */
+
+@keyframes orb-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(20px, -16px) scale(1.05); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.orb-drift { animation: orb-drift 18s ease-in-out infinite; }
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+.pulse-soft { animation: pulse-soft 4s ease-in-out infinite; }

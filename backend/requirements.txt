@@ -1,0 +1,33 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Quantuma AI backend — Python dependencies
+# Python 3.10 or 3.11 ONLY. PySpark 3.5 does not work on Python 3.12+ yet.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Core distributed engine
+pyspark==3.5.1
+
+# Phase 7: scikit-learn (sales forecast), MLlib comes with pyspark
+scikit-learn==1.4.2
+numpy==1.26.4
+pandas==2.2.2
+
+# Phase 7 visualisation helpers (notebook / debugging use only)
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# Postgres writers — psycopg2 is the default; SQLAlchemy used by pandas.to_sql
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.30
+
+# Config + env management
+python-dotenv==1.0.1
+
+# Optional: Supabase Python client (REST upserts as a fallback to JDBC/psycopg2)
+supabase==2.4.5
+
+# Jupyter for the demo notebooks in backend/notebooks/
+jupyter==1.0.0
+ipykernel==6.29.4
+
+# Pin pyarrow because Spark <-> pandas conversion uses it under the hood
+pyarrow==15.0.2
