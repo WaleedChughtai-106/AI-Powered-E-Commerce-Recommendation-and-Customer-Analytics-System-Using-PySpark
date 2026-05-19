@@ -158,10 +158,12 @@ export async function fetchRevenueMonthly() {
   return last12.map((r) => {
     const d = new Date(r.month);
     return {
-      month: MONTHS_LABEL[d.getUTCMonth()],
-      monthDate: r.month,
-      actual: Number(r.revenue ?? 0),
-      predicted: Number(r.revenue ?? 0),
+      month:         MONTHS_LABEL[d.getUTCMonth()],
+      monthDate:     r.month,                          // "YYYY-MM-DD" — used for date filtering
+      actual:        Number(r.revenue      ?? 0),
+      predicted:     Number(r.revenue      ?? 0),
+      orderCount:    Number(r.order_count   ?? 0),     // needed by date-range KPI derivation
+      customerCount: Number(r.customer_count ?? 0),   // needed by date-range KPI derivation
     };
   });
 }

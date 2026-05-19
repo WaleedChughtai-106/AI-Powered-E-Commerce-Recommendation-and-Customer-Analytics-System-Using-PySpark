@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Sparkles, TrendingUp, ShoppingBag, Target, MousePointerClick } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Sparkles, TrendingUp, ShoppingBag, Target, MousePointerClick, ChevronDown, CheckCircle2, Search, X } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PageHeader from "@/components/cards/PageHeader";
 import InsightCard from "@/components/cards/InsightCard";
@@ -14,43 +14,178 @@ import {
   fetchChannelPerformance,
   fetchCategoryPerformance,
 } from "@/services/salesService";
+import { useDashboard } from "@/context/DashboardContext";
 import { formatCurrency, formatPercent } from "@/utils/formatters";
 import { cn } from "@/lib/utils";
 
+const REGIONS = ["All Regions", "Brazil — North", "Brazil — South", "Brazil — Southeast", "Brazil — Other"];
+const CHANNELS = ["All Channels", "Credit Card", "Boleto", "Voucher", "Debit Card", "Other"];
+
 export default function SalesAnalyticsPage() {
   const [view, setView] = useState("grid");
+  const [catSearch, setCatSearch] = useState("");
 
-  const kpis      = useSupabaseQuery(fetchKpiCards);
-  const trend     = useSupabaseQuery(fetchRevenueMonthlyWithForecast);
-  const channels  = useSupabaseQuery(fetchChannelPerformance);
+  // Filter state
+  const [pendingRegion, setPendingRegion] = useState("All Regions");
+  const [pendingChannel, setPendingChannel] = useState("All Channels");
+  const [activeRegion, setActiveRegion] = useState("All Regions");
+  const [activeChannel, setActiveChannel] = useState("All Channels");
+  const [regionOpen, setRegionOpen] = useState(false);
+  const [channelOpen, setChannelOpen] = useState(false);
+  const [filterApplied, setFilterApplied] = useState(false);
+
+  // ── Date range from global context ──────────────────────────────────
+  const { dateFrom, dateTo } = useDashboard();
+
+  const kpis       = useSupabaseQuery(fetchKpiCards);
+  const trend      = useSupabaseQuery(fetchRevenueMonthlyWithForecast);
+  const channels   = useSupabaseQuery(fetchChannelPerformance);
   const categories = useSupabaseQuery(() => fetchCategoryPerformance(12));
 
-  // Pull the headline numbers off the live KPI feed (same source as dashboard).
-  const kpiByKey = Object.fromEntries((kpis.data ?? []).map((k) => [k.key, k]));
+  // ── Filter monthly trend by selected date range ──────────────────────
+  const filteredTrend = useMemo(() => {
+    const data = trend.data ?? [];
+    if (!dateFrom) return data;
+    const ymFrom = dateFrom.slice(0, 7);
+    const ymTo   = dateTo.slice(0, 7);
+    return data.filter((r) => {
+      const ym = (r.monthDate ?? "").slice(0, 7);
+      return ym >= ymFrom && ym <= ymTo;
+    });
+  }, [trend.data, dateFrom, dateTo]);
+
+  // ── Derive KPI values from filtered trend ────────────────────────────
+  const kpiByKey = useMemo(() => {
+    const base = Object.fromEntries((kpis.data ?? []).map((k) => [k.key, k]));
+    if (!dateFrom || filteredTrend.length === 0) return base;
+
+    const revenue   = filteredTrend.reduce((s, r) => s + (r.actual ?? 0), 0);
+    const ordersSum = filteredTrend.reduce((s, r) => s + (r.orderCount ?? 0), 0);
+    const customers = Math.max(...filteredTrend.map((r) => r.customerCount ?? 0));
+    const aov       = ordersSum > 0 ? revenue / ordersSum : 0;
+
+    return {
+      revenue: { value: revenue,   change: 0 },
+      aov:     { value: aov,       change: 0 },
+      orders:  { value: ordersSum, change: 0 },
+      active:  { value: customers, change: 0 },
+    };
+  }, [kpis.data, filteredTrend, dateFrom]);
+
+  const filteredChannels = useMemo(() => {
+    const data = channels.data ?? [];
+    return activeChannel === "All Channels" ? data : data.filter((c) => c.channel === activeChannel);
+  }, [channels.data, activeChannel]);
+
+  const filteredCategories = useMemo(() => {
+    const data = categories.data ?? [];
+    if (!catSearch.trim()) return data;
+    const q = catSearch.toLowerCase();
+    return data.filter((c) => c.category.toLowerCase().includes(q));
+  }, [categories.data, catSearch]);
+
+  const handleApply = () => {
+    setActiveRegion(pendingRegion);
+    setActiveChannel(pendingChannel);
+    setFilterApplied(true);
+    setRegionOpen(false);
+    setChannelOpen(false);
+    setTimeout(() => setFilterApplied(false), 2500);
+  };
 
   return (
-    <DashboardLayout searchPlaceholder="Search sales analytics...">
+    <DashboardLayout>
       <PageHeader
         title="Sales Analytics"
         description="Real-time revenue tracking and predictive intelligence across all channels."
         actions={
           <>
-            <div className="hidden md:flex items-center gap-2 rounded-xl border border-white/[0.06] bg-surface-1 px-3 py-2 text-xs">
-              <span className="text-muted-foreground">REGION</span>
-              <span className="font-semibold">All Regions</span>
+            {/* Region dropdown */}
+            <div className="relative hidden md:block">
+              <button
+                onClick={() => { setRegionOpen((o) => !o); setChannelOpen(false); }}
+                className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-surface-1 px-3 py-2 text-xs hover:bg-surface-2 transition"
+              >
+                <span className="text-muted-foreground">REGION</span>
+                <span className="font-semibold">{pendingRegion}</span>
+                <ChevronDown className={cn("h-3 w-3 transition-transform text-muted-foreground", regionOpen && "rotate-180")} />
+              </button>
+              {regionOpen && (
+                <div className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-white/[0.08] bg-surface-2 py-1 shadow-card z-50">
+                  {REGIONS.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => { setPendingRegion(r); setRegionOpen(false); }}
+                      className={cn(
+                        "w-full px-4 py-2 text-left text-xs transition hover:bg-surface-3",
+                        r === pendingRegion ? "text-emerald-400 font-semibold" : "text-foreground"
+                      )}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="hidden md:flex items-center gap-2 rounded-xl border border-white/[0.06] bg-surface-1 px-3 py-2 text-xs">
-              <span className="text-muted-foreground">CHANNEL</span>
-              <span className="font-semibold">All Channels</span>
+
+            {/* Channel dropdown */}
+            <div className="relative hidden md:block">
+              <button
+                onClick={() => { setChannelOpen((o) => !o); setRegionOpen(false); }}
+                className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-surface-1 px-3 py-2 text-xs hover:bg-surface-2 transition"
+              >
+                <span className="text-muted-foreground">CHANNEL</span>
+                <span className="font-semibold">{pendingChannel}</span>
+                <ChevronDown className={cn("h-3 w-3 transition-transform text-muted-foreground", channelOpen && "rotate-180")} />
+              </button>
+              {channelOpen && (
+                <div className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-white/[0.08] bg-surface-2 py-1 shadow-card z-50">
+                  {CHANNELS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => { setPendingChannel(c); setChannelOpen(false); }}
+                      className={cn(
+                        "w-full px-4 py-2 text-left text-xs transition hover:bg-surface-3",
+                        c === pendingChannel ? "text-emerald-400 font-semibold" : "text-foreground"
+                      )}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <button className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-black hover:bg-emerald-400 transition">
-              Apply Filters
+
+            <button
+              onClick={handleApply}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-black hover:bg-emerald-400 transition"
+            >
+              {filterApplied ? <><CheckCircle2 className="h-4 w-4" /> Applied!</> : "Apply Filters"}
             </button>
           </>
         }
       />
 
-      {/* Top stats — fed from v_kpi_summary */}
+      {/* Active filter badge */}
+      {(activeRegion !== "All Regions" || activeChannel !== "All Channels") && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-muted-foreground">Active filters:</span>
+          {activeRegion !== "All Regions" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-emerald-300 ring-1 ring-emerald-500/30">
+              {activeRegion}
+              <button onClick={() => { setActiveRegion("All Regions"); setPendingRegion("All Regions"); }} className="ml-1 hover:text-white">×</button>
+            </span>
+          )}
+          {activeChannel !== "All Channels" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-3 py-1 text-blue-300 ring-1 ring-blue-500/30">
+              {activeChannel}
+              <button onClick={() => { setActiveChannel("All Channels"); setPendingChannel("All Channels"); }} className="ml-1 hover:text-white">×</button>
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Top stats */}
       {kpis.loading ? (
         <LoadingSkeleton variant="kpi" rows={4} />
       ) : kpis.error ? (
@@ -99,8 +234,12 @@ export default function SalesAnalyticsPage() {
             <LoadingSkeleton variant="chart" height={280} />
           ) : trend.error ? (
             <SectionError message="Couldn't load revenue trend" error={trend.error} onRetry={trend.refetch} />
+          ) : filteredTrend.length === 0 ? (
+            <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-300">
+              No revenue data in the selected date range.
+            </p>
           ) : (
-            <RevenueAreaChart data={trend.data ?? []} />
+            <RevenueAreaChart data={filteredTrend} />
           )}
         </InsightCard>
 
@@ -112,7 +251,11 @@ export default function SalesAnalyticsPage() {
           ) : (
             <>
               <ul className="space-y-4">
-                {(channels.data ?? []).map((c) => (
+                {filteredChannels.length === 0 ? (
+                  <li className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300">
+                    No data for the selected channel filter.
+                  </li>
+                ) : filteredChannels.map((c) => (
                   <li key={c.channel}>
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-medium">{c.channel}</span>
@@ -134,7 +277,7 @@ export default function SalesAnalyticsPage() {
               </ul>
               <div className="mt-5 flex items-center justify-between border-t border-white/[0.06] pt-4 text-xs">
                 <span className="text-muted-foreground">Distinct Channels</span>
-                <span className="font-semibold text-emerald-400">{(channels.data ?? []).length}</span>
+                <span className="font-semibold text-emerald-400">{filteredChannels.length}</span>
               </div>
             </>
           )}
@@ -148,19 +291,37 @@ export default function SalesAnalyticsPage() {
           subtitle="Top categories by revenue · colour reflects avg review score"
           icon={TrendingUp}
           action={
-            <div className="inline-flex rounded-lg border border-white/[0.08] bg-surface-2 p-1 text-xs">
-              {["grid", "bar"].map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  className={cn(
-                    "px-3 py-1 rounded-md capitalize",
-                    view === v ? "bg-emerald-500 text-black font-semibold" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {v} view
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              {/* Inline category search */}
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={catSearch}
+                  onChange={(e) => setCatSearch(e.target.value)}
+                  placeholder="Search categories..."
+                  className="h-8 w-44 rounded-lg border border-white/[0.06] bg-surface-1 pl-8 pr-7 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                />
+                {catSearch && (
+                  <button onClick={() => setCatSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+              <div className="inline-flex rounded-lg border border-white/[0.08] bg-surface-2 p-1 text-xs">
+                {["grid", "bar"].map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setView(v)}
+                    className={cn(
+                      "px-3 py-1 rounded-md capitalize",
+                      view === v ? "bg-emerald-500 text-black font-semibold" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {v} view
+                  </button>
+                ))}
+              </div>
             </div>
           }
         >
@@ -169,11 +330,11 @@ export default function SalesAnalyticsPage() {
           ) : categories.error ? (
             <SectionError message="Couldn't load categories" error={categories.error} onRetry={categories.refetch} />
           ) : view === "bar" ? (
-            <CategoryBarChart data={categories.data ?? []} />
+            <CategoryBarChart data={filteredCategories} />
           ) : (
             <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-              {(categories.data ?? []).map((c) => {
-                const maxRev = Math.max(...(categories.data ?? []).map((x) => x.revenue), 1);
+              {filteredCategories.map((c) => {
+                const maxRev = Math.max(...filteredCategories.map((x) => x.revenue), 1);
                 const intensity = Math.min(1, c.revenue / maxRev);
                 return (
                   <div

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
+import { Sparkles, AlertTriangle, CheckCircle2, ArrowRight, Search, X } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PageHeader from "@/components/cards/PageHeader";
 import KpiCard from "@/components/cards/KpiCard";
@@ -18,6 +18,7 @@ import {
   fetchRecentOrders,
   fetchSegmentDistribution,
 } from "@/services/dashboardService";
+import { useDashboard } from "@/context/DashboardContext";
 import { formatCurrency, formatShortDate } from "@/utils/formatters";
 import { cn } from "@/lib/utils";
 
@@ -29,15 +30,74 @@ const STATUS_PILL = {
 
 export default function DashboardPage() {
   const [range, setRange] = useState("7D");
+  const [orderSearch, setOrderSearch] = useState("");
+
+  // ── Date range from global context ──────────────────────────────────
+  const { dateFrom, dateTo } = useDashboard();
 
   const kpis     = useSupabaseQuery(fetchKpiCards);
   const trend7d  = useSupabaseQuery(fetchRevenueLast7Days);
   const trend12m = useSupabaseQuery(fetchRevenueMonthlyWithForecast);
-  const orders   = useSupabaseQuery(() => fetchRecentOrders(6));
+  const orders   = useSupabaseQuery(() => fetchRecentOrders(50));
   const segments = useSupabaseQuery(fetchSegmentDistribution);
 
+  // ── Filter monthly trend by selected date range ──────────────────────
+  // Compare YYYY-MM so months whose 1st falls before the cutoff are still
+  // included (e.g. "Last 30 Days" with dateFrom="2018-09-17" keeps September
+  // because "2018-09" >= "2018-09").
+  const filteredTrend12m = useMemo(() => {
+    const data = trend12m.data ?? [];
+    if (!dateFrom) return data;
+    const ymFrom = dateFrom.slice(0, 7);
+    const ymTo   = dateTo.slice(0, 7);
+    return data.filter((r) => {
+      const ym = (r.monthDate ?? "").slice(0, 7);
+      return ym >= ymFrom && ym <= ymTo;
+    });
+  }, [trend12m.data, dateFrom, dateTo]);
+
+  // ── Derive KPI values from filtered trend (overrides static view) ────
+  // When a date range is active we sum from the monthly trend rows so
+  // every KPI card reflects only the chosen period.
+  const displayKpis = useMemo(() => {
+    const base = kpis.data ?? [];
+    if (!dateFrom || filteredTrend12m.length === 0) return base;
+
+    const revenue   = filteredTrend12m.reduce((s, r) => s + (r.actual ?? 0), 0);
+    const ordersSum = filteredTrend12m.reduce((s, r) => s + (r.orderCount ?? 0), 0);
+    const customers = Math.max(...filteredTrend12m.map((r) => r.customerCount ?? 0));
+    const aov       = ordersSum > 0 ? revenue / ordersSum : 0;
+
+    return [
+      { key: "revenue", label: "Total Revenue",    value: revenue,   change: 0, type: "currency", icon: "wallet",       accent: "emerald" },
+      { key: "orders",  label: "Total Orders",      value: ordersSum, change: 0, type: "number",   icon: "shopping-bag", accent: "blue"    },
+      { key: "aov",     label: "Avg Order Value",   value: aov,       change: 0, type: "currency", icon: "receipt",      accent: "purple"  },
+      { key: "active",  label: "Active Customers",  value: customers, change: 0, type: "number",   icon: "trending-up",  accent: "emerald" },
+    ];
+  }, [kpis.data, filteredTrend12m, dateFrom]);
+
+  // ── Filter orders by date range + search query ───────────────────────
+  const filteredOrders = useMemo(() => {
+    let data = orders.data ?? [];
+    if (dateFrom) {
+      // o.date is a full timestamp string; slice to "YYYY-MM-DD" for comparison
+      data = data.filter((o) => {
+        const d = String(o.date ?? "").slice(0, 10);
+        return d >= dateFrom && d <= dateTo;
+      });
+    }
+    if (!orderSearch.trim()) return data.slice(0, 6);
+    const q = orderSearch.toLowerCase();
+    return data.filter(
+      (o) =>
+        o.id.toLowerCase().includes(q) ||
+        o.customer.toLowerCase().includes(q) ||
+        o.status.toLowerCase().includes(q)
+    );
+  }, [orders.data, orderSearch, dateFrom, dateTo]);
+
   return (
-    <DashboardLayout searchPlaceholder="Search analytics...">
+    <DashboardLayout>
       <PageHeader
         title="Dashboard"
         description="Realtime overview of revenue, orders, customer engagement and AI-recommended actions."
@@ -54,7 +114,7 @@ export default function DashboardPage() {
         />
       ) : (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {(kpis.data ?? []).map((k) => (
+          {displayKpis.map((k) => (
             <KpiCard key={k.key} {...k} />
           ))}
         </div>
@@ -91,7 +151,7 @@ export default function DashboardPage() {
         >
           {range === "7D"
             ? renderTrend(trend7d, RevenueBarChart)
-            : renderTrend(trend12m, RevenueAreaChart)}
+            : renderTrend({ ...trend12m, data: filteredTrend12m }, RevenueAreaChart)}
         </InsightCard>
 
         {/* Daily Snapshot — static narrative copy (Phase 11 candidate to replace with live anomaly feed) */}
@@ -155,9 +215,26 @@ export default function DashboardPage() {
           subtitle="Latest transactions across all channels"
           className="lg:col-span-2"
           action={
-            <Link to="/sales" className="text-sm font-semibold text-emerald-400 hover:text-emerald-300">
-              View All →
-            </Link>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  placeholder="Search orders..."
+                  className="h-8 w-44 rounded-lg border border-white/[0.06] bg-surface-1 pl-8 pr-7 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                />
+                {orderSearch && (
+                  <button onClick={() => setOrderSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+              <Link to="/sales" className="text-sm font-semibold text-emerald-400 hover:text-emerald-300 whitespace-nowrap">
+                View All →
+              </Link>
+            </div>
           }
         >
           {orders.loading ? (
@@ -170,6 +247,11 @@ export default function DashboardPage() {
             />
           ) : (
             <div className="overflow-x-auto">
+              {orderSearch.trim() && (
+                <p className="mb-2 text-xs text-muted-foreground">
+                  {filteredOrders.length} result{filteredOrders.length !== 1 ? "s" : ""} for "{orderSearch}"
+                </p>
+              )}
               <table className="w-full text-sm">
                 <thead className="text-[10px] uppercase tracking-widest text-muted-foreground">
                   <tr className="border-b border-white/[0.06]">
@@ -181,7 +263,13 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="text-foreground">
-                  {(orders.data ?? []).map((o) => (
+                  {filteredOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                        No orders matching "{orderSearch}".
+                      </td>
+                    </tr>
+                  ) : filteredOrders.map((o) => (
                     <tr key={o.rawId} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition">
                       <td className="px-3 py-3.5 font-mono text-xs text-muted-foreground">#{o.id}</td>
                       <td className="px-3 py-3.5 font-medium">{o.customer}</td>

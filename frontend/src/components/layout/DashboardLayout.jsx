@@ -17,7 +17,7 @@ import Topbar from "./Topbar";
  * dark theme. The new `ambient-mesh` + theme-aware orb colours produce the
  * right look in both themes from a single source.
  */
-export default function DashboardLayout({ children, searchPlaceholder }) {
+export default function DashboardLayout({ children }) {
   return (
     <div className="relative min-h-screen w-full bg-background text-foreground flex overflow-hidden">
 
@@ -35,7 +35,7 @@ export default function DashboardLayout({ children, searchPlaceholder }) {
       <Sidebar />
 
       <div className="relative flex flex-1 flex-col">
-        <Topbar searchPlaceholder={searchPlaceholder} />
+        <Topbar />
         <main className="flex-1 px-4 md:px-8 py-6 md:py-10 animate-fade-in">
           {children}
         </main>

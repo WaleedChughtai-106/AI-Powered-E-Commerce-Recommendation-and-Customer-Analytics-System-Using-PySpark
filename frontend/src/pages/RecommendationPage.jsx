@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Sparkles, Network, Gauge, Layers, Zap, ShoppingCart } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Sparkles, Network, Gauge, Layers, Zap, ShoppingCart, Search, X } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PageHeader from "@/components/cards/PageHeader";
 import InsightCard from "@/components/cards/InsightCard";
@@ -15,20 +15,31 @@ import { formatCurrency } from "@/utils/formatters";
 import { cn } from "@/lib/utils";
 
 export default function RecommendationPage() {
-  // `nonce` lets the user resample a different customer via the cluster tabs.
   const [nonce, setNonce] = useState(0);
+  const [recSearch, setRecSearch] = useState("");
 
   const recs   = useSupabaseQuery(() => fetchClusterRecommendations(4), [nonce]);
   const tabs   = useSupabaseQuery(fetchClusterTabs);
   const models = useSupabaseQuery(fetchModelMetrics);
 
-  // Pull ALS precision@K from the latest model run for the hero "accuracy" line.
   const alsPrecision = (models.data ?? []).find(
     (m) => m.model === "als" && m.metric === "precision_at_k"
   );
 
+  // Filter recommendations by product ID or category
+  const filteredRecs = useMemo(() => {
+    const data = recs.data ?? [];
+    if (!recSearch.trim()) return data;
+    const q = recSearch.toLowerCase();
+    return data.filter(
+      (p) =>
+        p.id.toLowerCase().includes(q) ||
+        (p.category ?? "").toLowerCase().includes(q)
+    );
+  }, [recs.data, recSearch]);
+
   return (
-    <DashboardLayout searchPlaceholder="Search AI recommendations...">
+    <DashboardLayout>
       <PageHeader
         title="Recommendation Engine"
         description={
@@ -79,27 +90,50 @@ export default function RecommendationPage() {
           icon={ShoppingCart}
           className="lg:col-span-3"
           action={
-            <button
-              onClick={() => setNonce((n) => n + 1)}
-              className="rounded-md border border-white/[0.08] bg-surface-2 px-3 py-1.5 text-xs hover:bg-surface-3 transition"
-            >
-              Sample another customer
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={recSearch}
+                  onChange={(e) => setRecSearch(e.target.value)}
+                  placeholder="Search products..."
+                  className="h-8 w-36 rounded-lg border border-white/[0.06] bg-surface-1 pl-8 pr-7 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                />
+                {recSearch && (
+                  <button onClick={() => setRecSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={() => setNonce((n) => n + 1)}
+                className="rounded-md border border-white/[0.08] bg-surface-2 px-3 py-1.5 text-xs hover:bg-surface-3 transition whitespace-nowrap"
+              >
+                Sample another customer
+              </button>
+            </div>
           }
         >
           {recs.loading ? (
             <LoadingSkeleton variant="table" rows={4} columns={2} />
           ) : recs.error ? (
             <SectionError message="Couldn't load recommendations" error={recs.error} onRetry={recs.refetch} />
-          ) : (recs.data ?? []).length === 0 ? (
+          ) : filteredRecs.length === 0 ? (
             <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-300">
-              No recommendations available yet. Run the ALS step (
-              <code className="font-mono text-[11px]">scripts.run_ml_pipeline --only-als</code>
-              ).
+              {recSearch.trim()
+                ? `No recommendations matching "${recSearch}". Try a product ID or category name.`
+                : "No recommendations available yet. Run the ALS step (scripts.run_ml_pipeline --only-als)."}
             </p>
           ) : (
+            <>
+              {recSearch.trim() && (
+                <p className="mb-3 text-xs text-muted-foreground">
+                  {filteredRecs.length} result{filteredRecs.length !== 1 ? "s" : ""} for "{recSearch}"
+                </p>
+              )}
             <ul className="space-y-3">
-              {(recs.data ?? []).map((p) => (
+              {filteredRecs.map((p) => (
                 <li
                   key={p.productId}
                   className="flex items-center gap-4 rounded-xl border border-white/[0.06] bg-surface-1/70 p-4 hover:bg-surface-2 transition"
@@ -125,6 +159,7 @@ export default function RecommendationPage() {
                 </li>
               ))}
             </ul>
+            </>
           )}
         </InsightCard>
 
@@ -176,7 +211,7 @@ export default function RecommendationPage() {
             <SectionError message="Couldn't load recommendations" error={recs.error} onRetry={recs.refetch} />
           ) : (
             <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-              {(recs.data ?? []).map((p) => (
+              {filteredRecs.map((p) => (
                 <div
                   key={p.productId}
                   className="rounded-xl border border-white/[0.06] bg-surface-1/80 overflow-hidden hover:border-emerald-500/30 transition"

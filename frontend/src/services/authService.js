@@ -50,7 +50,7 @@ export async function signUpWithEmail(email, password, metadata = {}) {
     password,
     options: {
       data: metadata, // becomes auth.users.raw_user_meta_data
-      emailRedirectTo: `${window.location.origin}/login`,
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
     },
   });
 }

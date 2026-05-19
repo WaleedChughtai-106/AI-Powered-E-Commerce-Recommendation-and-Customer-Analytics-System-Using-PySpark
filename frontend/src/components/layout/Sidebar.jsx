@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { BrainCog, LifeBuoy, LogOut, Moon, Sun, Sparkles } from "lucide-react";
+import { BrainCog, LogOut, Moon, Sun } from "lucide-react";
 import { NAV_ITEMS } from "@/utils/constants";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
@@ -65,20 +65,8 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Upgrade CTA — premium emerald gradient button */}
-      <div className="px-3 pb-3">
-        <button className="btn-primary w-full">
-          <Sparkles className="h-4 w-4" />
-          Upgrade to Pro
-        </button>
-      </div>
-
-      {/* Support / Theme / Sign out */}
+      {/* Theme / Sign out */}
       <div className="px-3 py-3 space-y-1" style={{ borderTop: "1px solid var(--border-subtle)" }}>
-        <button className="nav-item w-full">
-          <LifeBuoy className="h-4 w-4" />
-          Support
-        </button>
         <button onClick={toggleTheme} className="nav-item w-full">
           {theme === "dark" ? (
             <>

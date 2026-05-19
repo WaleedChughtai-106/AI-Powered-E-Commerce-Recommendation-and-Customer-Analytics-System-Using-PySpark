@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { DashboardProvider } from "@/context/DashboardContext";
 import "./index.css";
 
 /**
@@ -18,7 +19,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <App />
+          <DashboardProvider>
+            <App />
+          </DashboardProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
-import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -11,6 +10,7 @@ import ProductInsightsPage from "@/pages/ProductInsightsPage";
 import VisualizationCenterPage from "@/pages/VisualizationCenterPage";
 import MLInsightsPage from "@/pages/MLInsightsPage";
 import SettingsPage from "@/pages/SettingsPage";
+import AuthCallbackPage from "@/pages/AuthCallbackPage";
 
 import ProtectedLayout from "@/layouts/ProtectedLayout";
 
@@ -31,9 +31,10 @@ export default function App() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
       {/* Protected (auth-gated) */}
       <Route element={<ProtectedLayout />}>
@@ -48,7 +49,7 @@ export default function App() {
       </Route>
 
       {/* Catch-all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
