@@ -104,12 +104,17 @@ export async function fetchModelMetrics() {
  * Sums the next 30 forecast days for a single "expected revenue" number.
  */
 export async function fetchForecastSummary() {
-  const rows = unwrap(
-    await supabase
+  // sales_forecasts may not exist yet (pipeline not run) — return empty gracefully.
+  let rows = [];
+  try {
+    const { data, error } = await supabase
       .from("sales_forecasts")
       .select("forecast_date, predicted_revenue, lower_bound, upper_bound, model_name")
-      .order("forecast_date", { ascending: true })
-  );
+      .order("forecast_date", { ascending: true });
+    if (!error && Array.isArray(data)) rows = data;
+  } catch (_) {
+    // table absent — treat as no forecast data
+  }
   if (rows.length === 0) {
     return { lower: null, upper: null, predictedTotal: null, model: null, n: 0 };
   }

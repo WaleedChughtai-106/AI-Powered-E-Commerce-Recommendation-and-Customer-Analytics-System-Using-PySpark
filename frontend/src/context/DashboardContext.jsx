@@ -19,7 +19,20 @@ import { createContext, useContext, useMemo, useState } from "react";
 // Olist dataset ceiling date (latest order in the dataset).
 const DATASET_MAX_DATE = "2018-10-17";
 
-// Maps each dropdown label to a day count (null = no limit = All Time).
+// How many calendar months each preset covers (null = all months = no slice).
+// Used by pages to do data.slice(-nMonths) on already-sorted monthly trend data,
+// which is robust regardless of the exact date string format Supabase returns.
+const RANGE_MONTHS = {
+  "Last 7 Days":    1,
+  "Last 30 Days":   2,
+  "Last 3 Months":  3,
+  "Last 6 Months":  6,
+  "Last 12 Months": 12,
+  "All Time":       null,
+};
+
+// Maps each dropdown label to a day count — used for exact-date filtering
+// on tables that have full timestamps (e.g. the orders table).
 const RANGE_DAYS = {
   "Last 7 Days":    7,
   "Last 30 Days":   30,
@@ -30,18 +43,25 @@ const RANGE_DAYS = {
 };
 
 /**
- * Given a preset label, return ISO date strings for [dateFrom, dateTo].
- * Both are null when "All Time" is selected (no filtering).
+ * Given a preset label, return:
+ *  - dateFrom / dateTo  : ISO "YYYY-MM-DD" strings relative to DATASET_MAX_DATE
+ *                         (null for "All Time"; used to filter order timestamps)
+ *  - nMonths            : integer for slicing monthly trend arrays
+ *                         (null for "All Time" = keep all rows)
  */
 function computeBounds(range) {
-  const days = RANGE_DAYS[range] ?? null;
-  if (!days) return { dateFrom: null, dateTo: null };
+  const nMonths = RANGE_MONTHS[range] ?? null;
+  const days    = RANGE_DAYS[range]   ?? null;
+
+  if (!days) return { dateFrom: null, dateTo: null, nMonths };
+
   const to   = new Date(DATASET_MAX_DATE);
   const from = new Date(to);
   from.setDate(from.getDate() - days);
   return {
     dateFrom: from.toISOString().split("T")[0],
     dateTo:   to.toISOString().split("T")[0],
+    nMonths,
   };
 }
 
@@ -52,17 +72,18 @@ const DashboardContext = createContext({
   setDateRange: () => {},
   dateFrom: null,
   dateTo:   null,
+  nMonths:  null,
 });
 
 export function DashboardProvider({ children }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange]     = useState("Last 30 Days");
 
-  const { dateFrom, dateTo } = useMemo(() => computeBounds(dateRange), [dateRange]);
+  const { dateFrom, dateTo, nMonths } = useMemo(() => computeBounds(dateRange), [dateRange]);
 
   return (
     <DashboardContext.Provider
-      value={{ searchQuery, setSearchQuery, dateRange, setDateRange, dateFrom, dateTo }}
+      value={{ searchQuery, setSearchQuery, dateRange, setDateRange, dateFrom, dateTo, nMonths }}
     >
       {children}
     </DashboardContext.Provider>

@@ -41,7 +41,7 @@ export default function MLInsightsPage() {
   const [exportDone, setExportDone] = useState(false);
   const [modelSearch, setModelSearch] = useState("");
 
-  const { dateFrom, dateTo } = useDashboard();
+  const { nMonths } = useDashboard();
 
   const metrics  = useSupabaseQuery(fetchModelMetrics);
   const forecast = useSupabaseQuery(fetchForecastSummary);
@@ -51,14 +51,18 @@ export default function MLInsightsPage() {
   // Filter trend chart by date range
   const filteredTrend = useMemo(() => {
     const data = trend.data ?? [];
-    if (!dateFrom) return data;
-    const ymFrom = dateFrom.slice(0, 7);
-    const ymTo   = dateTo.slice(0, 7);
-    return data.filter((r) => {
-      const ym = (r.monthDate ?? "").slice(0, 7);
-      return ym >= ymFrom && ym <= ymTo;
-    });
-  }, [trend.data, dateFrom, dateTo]);
+    if (!nMonths) return data;
+    return data.slice(-nMonths);
+  }, [trend.data, nMonths]);
+
+  // When no ML forecast exists, derive an estimate from the visible filtered
+  // months (same data the chart above is showing) so both update together.
+  const historicalEstimate = useMemo(() => {
+    if (filteredTrend.length === 0) return null;
+    const total = filteredTrend.reduce((s, r) => s + (r.actual ?? 0), 0);
+    const avg   = total / filteredTrend.length;
+    return avg > 0 ? avg : null;
+  }, [filteredTrend]);
 
   // Filter metrics by model name or metric name
   const filteredMetrics = useMemo(() => {
@@ -213,14 +217,23 @@ export default function MLInsightsPage() {
           )}
           <div className="mt-4 rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-4">
             <p className="text-sm font-semibold text-emerald-300">Predicted Total Revenue</p>
-            {forecast.loading ? (
+            {forecast.loading || trend.loading ? (
               <p className="mt-1 text-sm text-muted-foreground">Loading forecast…</p>
-            ) : forecast.error ? (
-              <p className="mt-1 text-xs text-red-300">Couldn't load forecast bounds.</p>
             ) : forecast.data?.predictedTotal == null ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                No forecast rows yet. Run the pipeline with the forecast step enabled.
-              </p>
+              historicalEstimate ? (
+                <>
+                  <p className="mt-1 text-2xl font-bold text-emerald-400">
+                    {formatCurrency(historicalEstimate)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    30-day estimate based on 3-month historical average.
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Predictive forecasting activates once the ML pipeline generates future revenue projections.
+                </p>
+              )
             ) : (
               <>
                 <p className="mt-1 text-sm">

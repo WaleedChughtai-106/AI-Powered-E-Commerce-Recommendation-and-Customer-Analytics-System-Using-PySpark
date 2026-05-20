@@ -178,13 +178,21 @@ export async function fetchRevenueMonthly() {
  * revenue (same as fetchRevenueMonthly).
  */
 export async function fetchRevenueMonthlyWithForecast() {
-  const [actuals, forecasts] = await Promise.all([
-    fetchRevenueMonthly(),
-    supabase
+  // Fetch actuals first — this must succeed.
+  const actuals = await fetchRevenueMonthly();
+
+  // Forecasts are optional: the table may not exist yet (pipeline not run).
+  // We intentionally swallow the error so the chart still renders with
+  // historical data only.
+  let forecasts = [];
+  try {
+    const { data, error } = await supabase
       .from("sales_forecasts")
-      .select("forecast_date, predicted_revenue")
-      .then(unwrap),
-  ]);
+      .select("forecast_date, predicted_revenue");
+    if (!error && Array.isArray(data)) forecasts = data;
+  } catch (_) {
+    // sales_forecasts table absent — fall back to actuals only
+  }
 
   if (!forecasts || forecasts.length === 0) return actuals;
 

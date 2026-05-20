@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [orderSearch, setOrderSearch] = useState("");
 
   // ── Date range from global context ──────────────────────────────────
-  const { dateFrom, dateTo } = useDashboard();
+  const { dateFrom, dateTo, nMonths } = useDashboard();
 
   const kpis     = useSupabaseQuery(fetchKpiCards);
   const trend7d  = useSupabaseQuery(fetchRevenueLast7Days);
@@ -42,26 +42,20 @@ export default function DashboardPage() {
   const segments = useSupabaseQuery(fetchSegmentDistribution);
 
   // ── Filter monthly trend by selected date range ──────────────────────
-  // Compare YYYY-MM so months whose 1st falls before the cutoff are still
-  // included (e.g. "Last 30 Days" with dateFrom="2018-09-17" keeps September
-  // because "2018-09" >= "2018-09").
+  // Use slice(-nMonths) on the already-sorted array — robust regardless of
+  // the exact date string format Supabase returns for the month column.
   const filteredTrend12m = useMemo(() => {
     const data = trend12m.data ?? [];
-    if (!dateFrom) return data;
-    const ymFrom = dateFrom.slice(0, 7);
-    const ymTo   = dateTo.slice(0, 7);
-    return data.filter((r) => {
-      const ym = (r.monthDate ?? "").slice(0, 7);
-      return ym >= ymFrom && ym <= ymTo;
-    });
-  }, [trend12m.data, dateFrom, dateTo]);
+    if (!nMonths) return data;           // "All Time" → keep everything
+    return data.slice(-nMonths);         // last N calendar months
+  }, [trend12m.data, nMonths]);
 
   // ── Derive KPI values from filtered trend (overrides static view) ────
   // When a date range is active we sum from the monthly trend rows so
   // every KPI card reflects only the chosen period.
   const displayKpis = useMemo(() => {
     const base = kpis.data ?? [];
-    if (!dateFrom || filteredTrend12m.length === 0) return base;
+    if (!nMonths || filteredTrend12m.length === 0) return base;
 
     const revenue   = filteredTrend12m.reduce((s, r) => s + (r.actual ?? 0), 0);
     const ordersSum = filteredTrend12m.reduce((s, r) => s + (r.orderCount ?? 0), 0);

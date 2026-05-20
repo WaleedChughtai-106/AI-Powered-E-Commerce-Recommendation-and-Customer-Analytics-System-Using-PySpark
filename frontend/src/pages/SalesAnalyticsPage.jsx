@@ -35,7 +35,7 @@ export default function SalesAnalyticsPage() {
   const [filterApplied, setFilterApplied] = useState(false);
 
   // ── Date range from global context ──────────────────────────────────
-  const { dateFrom, dateTo } = useDashboard();
+  const { nMonths } = useDashboard();
 
   const kpis       = useSupabaseQuery(fetchKpiCards);
   const trend      = useSupabaseQuery(fetchRevenueMonthlyWithForecast);
@@ -45,19 +45,14 @@ export default function SalesAnalyticsPage() {
   // ── Filter monthly trend by selected date range ──────────────────────
   const filteredTrend = useMemo(() => {
     const data = trend.data ?? [];
-    if (!dateFrom) return data;
-    const ymFrom = dateFrom.slice(0, 7);
-    const ymTo   = dateTo.slice(0, 7);
-    return data.filter((r) => {
-      const ym = (r.monthDate ?? "").slice(0, 7);
-      return ym >= ymFrom && ym <= ymTo;
-    });
-  }, [trend.data, dateFrom, dateTo]);
+    if (!nMonths) return data;
+    return data.slice(-nMonths);
+  }, [trend.data, nMonths]);
 
   // ── Derive KPI values from filtered trend ────────────────────────────
   const kpiByKey = useMemo(() => {
     const base = Object.fromEntries((kpis.data ?? []).map((k) => [k.key, k]));
-    if (!dateFrom || filteredTrend.length === 0) return base;
+    if (!nMonths || filteredTrend.length === 0) return base;
 
     const revenue   = filteredTrend.reduce((s, r) => s + (r.actual ?? 0), 0);
     const ordersSum = filteredTrend.reduce((s, r) => s + (r.orderCount ?? 0), 0);
@@ -70,7 +65,7 @@ export default function SalesAnalyticsPage() {
       orders:  { value: ordersSum, change: 0 },
       active:  { value: customers, change: 0 },
     };
-  }, [kpis.data, filteredTrend, dateFrom]);
+  }, [kpis.data, filteredTrend, nMonths]);
 
   const filteredChannels = useMemo(() => {
     const data = channels.data ?? [];

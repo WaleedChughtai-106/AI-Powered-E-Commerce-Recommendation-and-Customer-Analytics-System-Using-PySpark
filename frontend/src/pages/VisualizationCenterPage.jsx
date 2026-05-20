@@ -83,7 +83,7 @@ export default function VisualizationCenterPage() {
   const [exportFeedback, setExportFeedback] = useState("");
 
   // ── Date range from global context ──────────────────────────────────
-  const { dateFrom, dateTo } = useDashboard();
+  const { dateFrom, nMonths } = useDashboard();
 
   // ── Data fetches ─────────────────────────────────────────────────────
   const trend      = useSupabaseQuery(fetchRevenueMonthlyWithForecast);
@@ -98,16 +98,10 @@ export default function VisualizationCenterPage() {
     let data = trend.data ?? [];
     if (!data.length) return data;
 
-    // 1. Date range filter — compare YYYY-MM so a month whose 1st falls before
-    //    the cutoff is still included (e.g. "Last 30 Days" keeps September even
-    //    though "2018-09-01" < "2018-09-17").
-    if (dateFrom) {
-      const ymFrom = dateFrom.slice(0, 7); // "YYYY-MM"
-      const ymTo   = dateTo.slice(0, 7);
-      data = data.filter((r) => {
-        const ym = (r.monthDate ?? "").slice(0, 7);
-        return ym >= ymFrom && ym <= ymTo;
-      });
+    // 1. Date range filter — slice the sorted array to the last N months.
+    //    This is format-agnostic (no date string parsing needed).
+    if (nMonths) {
+      data = data.slice(-nMonths);
     }
 
     // 2. Category scale: use selected category's share of total category revenue
@@ -128,7 +122,7 @@ export default function VisualizationCenterPage() {
       actual:    (row.actual    ?? 0) * scale,
       predicted: (row.predicted ?? 0) * scale,
     }));
-  }, [trend.data, dateFrom, dateTo, category, categories.data, region]);
+  }, [trend.data, nMonths, category, categories.data, region]);
 
   // ── KPI value map for custom cards ───────────────────────────────────
   // When a date range is active, derive values from filteredTrend;
@@ -137,7 +131,7 @@ export default function VisualizationCenterPage() {
     const byKey  = Object.fromEntries((kpis.data ?? []).map((k) => [k.key, k]));
     const atRisk = (segments.data ?? []).find((s) => s.name?.toLowerCase().includes("risk"));
 
-    if (dateFrom && filteredTrend.length > 0) {
+    if (nMonths && filteredTrend.length > 0) {
       const revenue   = filteredTrend.reduce((s, r) => s + (r.actual ?? 0), 0);
       const ordersSum = filteredTrend.reduce((s, r) => s + (r.orderCount ?? 0), 0);
       const customers = Math.max(...filteredTrend.map((r) => r.customerCount ?? 0));
@@ -159,7 +153,7 @@ export default function VisualizationCenterPage() {
       churn:     atRisk?.customers    ?? 0,
       forecast:  predictedRevenue,
     };
-  }, [kpis.data, segments.data, filteredTrend, trend.data, dateFrom]);
+  }, [kpis.data, segments.data, filteredTrend, trend.data, nMonths]);
 
   const filteredCategories = useMemo(() => {
     let data = categories.data ?? [];
