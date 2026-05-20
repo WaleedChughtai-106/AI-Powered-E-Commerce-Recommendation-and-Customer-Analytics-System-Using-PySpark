@@ -353,16 +353,35 @@ export default function SettingsPage() {
 
         <InsightCard title="AI Security Pulse" icon={Sparkles} iconAccent="purple">
           <p className="kpi-label mb-2">Risk Assessment</p>
-          <p className="text-3xl font-bold text-emerald-400">Low</p>
-          <p className="mt-1 text-xs text-muted-foreground">0.02% variance vs baseline</p>
+          <p className={cn("text-3xl font-bold", mfa ? "text-emerald-400" : "text-amber-400")}>
+            {mfa ? "Low" : "Medium"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {mfa ? "0.02% variance vs baseline" : "2.4% variance vs baseline"}
+          </p>
 
-          <div className="mt-5 rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
+          <div className={cn(
+            "mt-5 rounded-xl border p-4",
+            mfa ? "border-violet-500/20 bg-violet-500/5" : "border-amber-500/20 bg-amber-500/5"
+          )}>
             <p className="text-sm italic leading-relaxed">
-              "Your account security is <span className="font-semibold text-emerald-400">15% higher</span> than the
-              industry average for enterprise analytics. MFA is{" "}
-              <span className={cn("font-semibold", mfa ? "text-emerald-400" : "text-amber-400")}>
-                {mfa ? "protecting 3 active sessions" : "currently disabled"}
-              </span>."
+              {mfa ? (
+                <>
+                  "Your account security is{" "}
+                  <span className="font-semibold text-emerald-400">15% higher</span> than the industry
+                  average for enterprise analytics. MFA is{" "}
+                  <span className="font-semibold text-emerald-400">actively shielding 3 sessions</span>{" "}
+                  against unauthorized access."
+                </>
+              ) : (
+                <>
+                  "Disabling MFA has{" "}
+                  <span className="font-semibold text-amber-400">reduced your security score by 18%</span>.
+                  Re-enable MFA to restore protection across your{" "}
+                  <span className="font-semibold text-amber-400">3 exposed sessions</span> and minimize
+                  unauthorized access risk."
+                </>
+              )}
             </p>
           </div>
 
