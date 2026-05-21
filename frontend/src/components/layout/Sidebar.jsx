@@ -39,7 +39,7 @@ export default function Sidebar() {
             Quantuma AI
           </div>
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Enterprise Analytics
+            
           </div>
         </div>
       </div>
